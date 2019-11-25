@@ -19,41 +19,50 @@ protocol MeditationDisplayLogic: class
 
 class MeditationViewController: UIViewController, MeditationDisplayLogic
 {
-  var interactor: MeditationBusinessLogic?
-  var router: (NSObjectProtocol & MeditationRoutingLogic & MeditationDataPassing)?
+	var interactor: MeditationBusinessLogic?
+	var router: (NSObjectProtocol & MeditationRoutingLogic & MeditationDataPassing)?
 
-  // MARK: Object lifecycle
+	let singleBreathInCicleLayer = CAShapeLayer()			//круг+кольцо прогресса для одиночного вдоха
+	let singleBreathOutCicleLayer = CAShapeLayer()			//круг+кольцо прогресса для одиночного выдоха
+	let singleBreathCicleTrackLayer = CAShapeLayer()		//круг+кольцо прогресса для одиночного вдоха/выдоха (тень)
+
+	let totalMeditationProgressLayer = CAShapeLayer()		//круг+кольцо прогресса для общего прогресса медитации
+	let totalMeditationProgressTrackLayer = CAShapeLayer()	//круг+кольцо прогресса для общего прогресса медитации (тень)
+	var pulsatingLayer: CAShapeLayer!
+
+	var buttonMeditationStartButton = UIButton()			//кнопка старта медитации
+
+	var singleBreathCicleRadius:CGFloat = 0					//радиус кругового singleBreathCicleTrackLayer (singleBreathInCicleLayer + singleBreathOutCicleLayer)
+	var circleLineWidth:CGFloat = 0							//ширина прогресса, которая идет по каемке круга
+	var totalMeditationProgressRadius:CGFloat = 0			//радиус кругового totalMeditationProgressLayer
+	
+	
+	// MARK: Object lifecycle
+	override init(nibName nibNameOrNil: String?, bundle nibBundleOrNil: Bundle?) {
+		super.init(nibName: nibNameOrNil, bundle: nibBundleOrNil)
+		setup()
+	}
   
-  override init(nibName nibNameOrNil: String?, bundle nibBundleOrNil: Bundle?)
-  {
-    super.init(nibName: nibNameOrNil, bundle: nibBundleOrNil)
-    setup()
-  }
-  
-  required init?(coder aDecoder: NSCoder)
-  {
-    super.init(coder: aDecoder)
-    setup()
-  }
+	required init?(coder aDecoder: NSCoder) {
+		super.init(coder: aDecoder)
+		setup()
+	}
   
   // MARK: Setup
-  
-  private func setup()
-  {
-    let viewController = self
-    let interactor = MeditationInteractor()
-    let presenter = MeditationPresenter()
-    let router = MeditationRouter()
-    viewController.interactor = interactor
-    viewController.router = router
-    interactor.presenter = presenter
-    presenter.viewController = viewController
-    router.viewController = viewController
-    router.dataStore = interactor
-  }
+	private func setup() {
+		let viewController = self
+		let interactor = MeditationInteractor()
+		let presenter = MeditationPresenter()
+		let router = MeditationRouter()
+		viewController.interactor = interactor
+		viewController.router = router
+		interactor.presenter = presenter
+		presenter.viewController = viewController
+		router.viewController = viewController
+		router.dataStore = interactor
+	}
   
   // MARK: Routing
-  
   override func prepare(for segue: UIStoryboardSegue, sender: Any?)
   {
     if let scene = segue.identifier {
@@ -65,15 +74,130 @@ class MeditationViewController: UIViewController, MeditationDisplayLogic
   }
   
   // MARK: View lifecycle
-  
-  override func viewDidLoad()
-  {
-    super.viewDidLoad()
-    doSomething()
-  }
-  
+	override func viewDidLoad() {
+		super.viewDidLoad()
+		doSomething()
+
+		singleBreathCicleRadius = self.view.bounds.width/2.5
+		circleLineWidth = singleBreathCicleRadius/8
+		totalMeditationProgressRadius = singleBreathCicleRadius - 2.5*circleLineWidth
+
+		self.view.backgroundColor = UIColor.black
+
+		//create track layer
+		let singleBreathInCicleCircularPath = UIBezierPath(arcCenter: view.center, radius:singleBreathCicleRadius, startAngle: -CGFloat.pi/2, endAngle:0, clockwise: true)
+		singleBreathInCicleLayer.path = singleBreathInCicleCircularPath.cgPath
+		singleBreathInCicleLayer.strokeColor = UIColor(red: 0.0/255.0, green: 150.0/255.0, blue: 255.0/255.0, alpha: 255.0/255.0).cgColor
+		singleBreathInCicleLayer.fillColor = UIColor.clear.cgColor
+		singleBreathInCicleLayer.lineWidth = circleLineWidth
+		singleBreathInCicleLayer.strokeEnd = 0
+		//		singleBreathInCicleLayer.lineCap = CAShapeLayerLineCap.round		//закругленность ломает UX при замыкании секций(
+
+		let singleBreathOutCicleCircularPath = UIBezierPath(arcCenter: view.center, radius:singleBreathCicleRadius, startAngle: 0, endAngle:3*CGFloat.pi/2, clockwise: true)
+		singleBreathOutCicleLayer.path = singleBreathOutCicleCircularPath.cgPath
+		singleBreathOutCicleLayer.strokeColor = UIColor(red: 4.0/255.0, green: 51.0/255.0, blue: 255.0/255.0, alpha: 255.0/255.0).cgColor
+		singleBreathOutCicleLayer.fillColor = UIColor.clear.cgColor
+		singleBreathOutCicleLayer.lineWidth = circleLineWidth
+		singleBreathOutCicleLayer.strokeEnd = 0
+		//      singleBreathOutCicleLayer.lineCap = CAShapeLayerLineCap.round		//закругленность ломает UX при замыкании секций(
+
+		let singleBreathCicleCircularPath = UIBezierPath(arcCenter: view.center, radius:singleBreathCicleRadius, startAngle: -CGFloat.pi/2, endAngle:CGFloat.pi * 2, clockwise: true)
+		singleBreathCicleTrackLayer.path = singleBreathCicleCircularPath.cgPath
+		singleBreathCicleTrackLayer.strokeColor = UIColor(red: 121.0/255.0, green: 121.0/255.0, blue: 121.0/255.0, alpha: 255.0/255.0).cgColor
+		singleBreathCicleTrackLayer.fillColor = UIColor.clear.cgColor
+		singleBreathCicleTrackLayer.lineCap = CAShapeLayerLineCap.round
+		singleBreathCicleTrackLayer.lineWidth = circleLineWidth
+
+
+		let totalMeditationProgressCircularPath = UIBezierPath(arcCenter: view.center, radius:totalMeditationProgressRadius, startAngle: -CGFloat.pi/2, endAngle:CGFloat.pi * 2, clockwise: true)
+		totalMeditationProgressLayer.path = totalMeditationProgressCircularPath.cgPath
+		totalMeditationProgressLayer.strokeColor = UIColor.green.cgColor
+		totalMeditationProgressLayer.fillColor = UIColor.clear.cgColor
+		totalMeditationProgressLayer.lineCap = CAShapeLayerLineCap.round
+		totalMeditationProgressLayer.lineWidth = circleLineWidth
+		totalMeditationProgressLayer.strokeEnd = 0
+
+		totalMeditationProgressTrackLayer.path = totalMeditationProgressCircularPath.cgPath
+		totalMeditationProgressTrackLayer.strokeColor = UIColor(red: 121.0/255.0, green: 121.0/255.0, blue: 121.0/255.0, alpha: 255.0/255.0).cgColor
+		totalMeditationProgressTrackLayer.fillColor = UIColor.clear.cgColor
+		totalMeditationProgressTrackLayer.lineCap = CAShapeLayerLineCap.round
+		totalMeditationProgressTrackLayer.lineWidth = circleLineWidth
+
+		pulsatingLayer = CAShapeLayer()
+		pulsatingLayer.path = UIBezierPath(arcCenter: .zero, radius: singleBreathCicleRadius, startAngle: 0, endAngle: 2 * CGFloat.pi, clockwise: true).cgPath
+		pulsatingLayer.strokeColor = UIColor(red: 19.0/255.0, green: 51.0/255.0, blue: 89.0/255.0, alpha: 255.0/255.0).cgColor
+		pulsatingLayer.lineWidth = circleLineWidth
+		pulsatingLayer.fillColor = UIColor.clear.cgColor
+		pulsatingLayer.lineCap = CAShapeLayerLineCap.round
+		pulsatingLayer.position = view.center
+
+		self.view.layer.addSublayer(pulsatingLayer)
+		self.view.layer.addSublayer(singleBreathCicleTrackLayer)
+		self.view.layer.addSublayer(singleBreathOutCicleLayer)
+		self.view.layer.addSublayer(singleBreathInCicleLayer)
+
+		self.view.layer.addSublayer(totalMeditationProgressTrackLayer)
+		self.view.layer.addSublayer(totalMeditationProgressLayer)
+
+		self.view.addSubview(buttonMeditationStartButton)
+
+		self.buttonMeditationStartButtonSetup()
+		self.buttonMeditationStartButton.addTarget(self, action: #selector(self.startCicle), for: .touchUpInside)
+	}
+	
+	override func viewDidLayoutSubviews() {
+		super.viewWillLayoutSubviews()
+		self.buttonMeditationStartButton.layer.cornerRadius = self.buttonMeditationStartButton.bounds.height / 2.0
+	}
+	
+	func buttonMeditationStartButtonSetup() {
+		self.buttonMeditationStartButton.setTitle("Tap to start", for: .normal)
+		self.buttonMeditationStartButton.titleLabel?.font =  UIFont(name: "Copperplate", size: 30)
+		self.buttonMeditationStartButton.setTitleColor(.white, for: .normal)
+		self.buttonMeditationStartButton.backgroundColor = .black
+
+		self.buttonMeditationStartButton.translatesAutoresizingMaskIntoConstraints = false
+		self.buttonMeditationStartButton.centerXAnchor.constraint(equalTo: self.view.centerXAnchor).isActive = true
+		self.buttonMeditationStartButton.centerYAnchor.constraint(equalTo: self.view.centerYAnchor).isActive = true
+		self.buttonMeditationStartButton.widthAnchor.constraint(equalToConstant: (totalMeditationProgressRadius*2)-circleLineWidth).isActive = true
+		self.buttonMeditationStartButton.heightAnchor.constraint(equalToConstant: (totalMeditationProgressRadius*2)-circleLineWidth).isActive = true
+	}
+	
+	@objc func startCicle () {
+		 
+		// animate
+		let pulseAnimation = CABasicAnimation(keyPath: "transform.scale")
+		let breathInAnimation = CABasicAnimation(keyPath: "strokeEnd")
+		let breathOutAnimation = CABasicAnimation(keyPath: "strokeEnd")
+		var timeDelta:Double = 0;
+		
+		
+        pulseAnimation.toValue = 1.08
+        pulseAnimation.duration = 0.8
+		pulseAnimation.timingFunction = CAMediaTimingFunction(name: CAMediaTimingFunctionName.easeOut)
+        pulseAnimation.autoreverses = true
+        pulseAnimation.repeatCount = Float.infinity
+        pulsatingLayer.add(pulseAnimation, forKey: "pulsing")
+		
+		breathInAnimation.toValue = 1
+		breathInAnimation.beginTime = CACurrentMediaTime()
+		breathInAnimation.duration = 3.0
+        breathInAnimation.fillMode = CAMediaTimingFillMode.forwards
+        breathInAnimation.isRemovedOnCompletion = false
+		self.singleBreathInCicleLayer.add(breathInAnimation, forKey: "animationOfTimer")
+
+		timeDelta += breathInAnimation.duration
+
+		breathOutAnimation.toValue = 1
+		breathOutAnimation.beginTime = CACurrentMediaTime() + timeDelta
+		breathOutAnimation.duration = 9.0
+        breathOutAnimation.fillMode = CAMediaTimingFillMode.forwards
+        breathOutAnimation.isRemovedOnCompletion = false
+		self.singleBreathOutCicleLayer.add(breathOutAnimation, forKey: "animationOfTimer")
+	}
+	
+	
   // MARK: Do something
-  
   //@IBOutlet weak var nameTextField: UITextField!
   
   func doSomething()
