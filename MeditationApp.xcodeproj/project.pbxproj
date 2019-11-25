@@ -184,11 +184,11 @@
 		2FA03D73238BE6B80054DCE2 /* Tabs */ = {
 			isa = PBXGroup;
 			children = (
+				2FA03D71238BE69A0054DCE2 /* Meditation */,
 				2FA03D77238BE8220054DCE2 /* Settings */,
 				2FA03D76238BE8170054DCE2 /* Sport */,
 				2FA03D75238BE8100054DCE2 /* FoodAndWater */,
 				2FA03D74238BE8060054DCE2 /* BadHabits */,
-				2FA03D71238BE69A0054DCE2 /* Meditation */,
 			);
 			name = Tabs;
 			sourceTree = "<group>";
